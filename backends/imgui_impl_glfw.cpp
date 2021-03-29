@@ -278,10 +278,12 @@ void ImGui_ImplGlfw_Shutdown()
     g_ClientApi = GlfwClientApi_Unknown;
 }
 
-void ImGui_ImplGlfw_WaitForEvent()
+void ImGui_ImplGlfw_Events()
 {
-    if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_EnablePowerSavingMode))
+    if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_EnablePowerSavingMode)) {
+        glfwPollEvents();
         return;
+		}
 
     bool window_is_hidden = !glfwGetWindowAttrib(g_Window, GLFW_VISIBLE) || glfwGetWindowAttrib(g_Window, GLFW_ICONIFIED);
     double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
