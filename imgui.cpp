@@ -1013,6 +1013,7 @@ ImGuiStyle::ImGuiStyle()
     AntiAliasedFill         = true;             // Enable anti-aliased filled shapes (rounded rectangles, circles, etc.).
     CurveTessellationTol    = 1.25f;            // Tessellation tolerance when using PathBezierCurveTo() without a specific number of segments. Decrease for highly tessellated curves (higher quality, more polygons), increase to reduce quality.
     CircleTessellationMaxError = 0.30f;         // Maximum error (in pixels) allowed when using AddCircle()/AddCircleFilled() or drawing rounded corner rectangles with no explicit segment count specified. Decrease for higher quality but more geometry.
+    AnimationMaxWaitBeforeNextFrame = 1/60.;    // Speed of animations, in seconds between frames. Makes sure there are smooth animations in power saving mode.
 
     // Default theme
     ImGui::StyleColorsDark(this);
@@ -4029,10 +4030,14 @@ void ImGui::NewFrame()
     UpdateMouseMovingWindowNewFrame();
 
     // Background darkening/whitening
+    double DimBgRatioBefore = g.DimBgRatio;
     if (GetTopMostPopupModal() != NULL || (g.NavWindowingTarget != NULL && g.NavWindowingHighlightAlpha > 0.0f))
         g.DimBgRatio = ImMin(g.DimBgRatio + g.IO.DeltaTime * 6.0f, 1.0f);
     else
         g.DimBgRatio = ImMax(g.DimBgRatio - g.IO.DeltaTime * 10.0f, 0.0f);
+
+    if (g.DimBgRatio != DimBgRatioBefore)
+        ImGui::SetMaxWaitBeforeNextFrame(g.Style.AnimationMaxWaitBeforeNextFrame);
 
     g.MouseCursor = ImGuiMouseCursor_Arrow;
     g.WantCaptureMouseNextFrame = g.WantCaptureKeyboardNextFrame = g.WantTextInputNextFrame = -1;
@@ -9515,6 +9520,8 @@ static void ImGui::NavUpdateWindowing()
         g.NavWindowingHighlightAlpha = ImMax(g.NavWindowingHighlightAlpha - g.IO.DeltaTime * 10.0f, 0.0f);
         if (g.DimBgRatio <= 0.0f && g.NavWindowingHighlightAlpha <= 0.0f)
             g.NavWindowingTargetAnim = NULL;
+        else
+            ImGui::SetMaxWaitBeforeNextFrame(g.Style.AnimationMaxWaitBeforeNextFrame);
     }
 
     // Start CTRL-TAB or Square+L/R window selection
