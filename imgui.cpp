@@ -6171,7 +6171,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
         }
 
         // Draw navigation selection/windowing rectangle border
-        if (g.NavWindowingTargetAnim == window)
+        if (dim_bg_for_window_list && window == g.NavWindowingTargetAnim)
         {
             float rounding = ImMax(window->WindowRounding, g.Style.WindowRounding);
             ImRect bb = window->Rect();
