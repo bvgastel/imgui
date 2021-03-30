@@ -287,13 +287,23 @@ void ImGui_ImplGlfw_Events()
 
     bool window_is_hidden = !glfwGetWindowAttrib(g_Window, GLFW_VISIBLE) || glfwGetWindowAttrib(g_Window, GLFW_ICONIFIED);
     double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
-    if (waiting_time > 0.0)
-    {
-        if (isinf(waiting_time))
-            glfwWaitEvents();
-        else
-            glfwWaitEventsTimeout(waiting_time);
+    if (isinf(waiting_time)) {
+        glfwWaitEvents();
+        return;
     }
+    // Calculate processing time, to make wait time relative to start of frame.
+    // This results in improved frame rates (setting 1/30 seconds max waiting time results in at least 30 frames per second).
+    double elapsedSinceNewFrame = glfwGetTime() - g_Time;
+    waiting_time -= elapsedSinceNewFrame;
+    // Since glfwWaitEventsTimeout is using a regular time out (from the moment it is called, should have been absolute or relative to the previous frame),
+    // We account for a bit of overhead inside glfwWaitEventsTimeout.
+    // This number works on Linux/Wayland and yields the desired 30fps with the animted 'plots widgets' demo.
+    waiting_time -= 0.0004;
+    if (waiting_time <= 0.0) {
+        glfwPollEvents();
+        return;
+    }
+    glfwWaitEventsTimeout(waiting_time);
 }
 
 static void ImGui_ImplGlfw_UpdateMousePosAndButtons()
@@ -393,6 +403,11 @@ void ImGui_ImplGlfw_NewFrame()
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer backend. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 
+    // Setup time step (as soon as possible to minimize timing skew)
+    double current_time = glfwGetTime();
+    io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
+    g_Time = current_time;
+
     // Setup display size (every frame to accommodate for window resizing)
     int w, h;
     int display_w, display_h;
@@ -401,11 +416,6 @@ void ImGui_ImplGlfw_NewFrame()
     io.DisplaySize = ImVec2((float)w, (float)h);
     if (w > 0 && h > 0)
         io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
-
-    // Setup time step
-    double current_time = glfwGetTime();
-    io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
-    g_Time = current_time;
 
     ImGui_ImplGlfw_UpdateMousePosAndButtons();
     ImGui_ImplGlfw_UpdateMouseCursor();
