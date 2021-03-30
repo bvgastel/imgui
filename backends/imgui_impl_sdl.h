@@ -27,4 +27,5 @@ IMGUI_IMPL_API bool     ImGui_ImplSDL2_InitForMetal(SDL_Window* window);
 IMGUI_IMPL_API void     ImGui_ImplSDL2_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplSDL2_NewFrame(SDL_Window* window);
 IMGUI_IMPL_API void     ImGui_ImplSDL2_WaitForEvent();
+IMGUI_IMPL_API bool     ImGui_ImplSDL2_Events(SDL_Window* window); // returns true if main loop should quit
 IMGUI_IMPL_API bool     ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event);

@@ -89,17 +89,41 @@ void ImGui_ImplSDL2_WaitForEvent()
     Uint32 window_flags = SDL_GetWindowFlags(g_Window);
     bool window_is_hidden = window_flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED);
     double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
-    if (waiting_time > 0.0)
-    {
-        if (isinf(waiting_time))
-            SDL_WaitEvent(NULL);
-        else
-        {
-            const int waiting_time_ms = (int)(1000.0 * ImGui::GetEventWaitingTime());
-            SDL_WaitEventTimeout(NULL, waiting_time_ms);
-        }
+
+    if (isinf(waiting_time)) {
+        SDL_WaitEvent(NULL);
+        return;
     }
+
+    // Calculate processing time, to make wait time relative to start of frame.
+    // This results in improved frame rates (setting 1/30 seconds max waiting time results in at least 30 frames per second).
+    static Uint64 frequency = SDL_GetPerformanceFrequency();
+    Uint64 current_time = SDL_GetPerformanceCounter();
+    double elapsedSinceNewFrame = (float)((double)(current_time - g_Time) / frequency);
+    waiting_time -= elapsedSinceNewFrame;
+
+    if (waiting_time <= 0.0)
+        return;
+
+    const int waiting_time_ms = (int)(1000.0 * waiting_time);
+    SDL_WaitEventTimeout(NULL, waiting_time_ms);
 }
+
+bool ImGui_ImplSDL2_Events(SDL_Window* window) {
+  bool done = false;
+  ImGui_ImplSDL2_WaitForEvent();
+  SDL_Event event;
+  while (SDL_PollEvent(&event))
+  {
+    ImGui_ImplSDL2_ProcessEvent(&event);
+    if (event.type == SDL_QUIT)
+      done = true;
+    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+      done = true;
+  }
+  return done;
+}
+
 
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
