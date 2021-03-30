@@ -268,16 +268,16 @@ void    ImGui_ImplWin32_NewFrame()
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer backend. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 
-    // Setup display size (every frame to accommodate for window resizing)
-    RECT rect = { 0, 0, 0, 0 };
-    ::GetClientRect(g_hWnd, &rect);
-    io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
-
-    // Setup time step
+    // Setup time step (as soon as possible to minimize timing skew)
     INT64 current_time = 0;
     ::QueryPerformanceCounter((LARGE_INTEGER*)&current_time);
     io.DeltaTime = (float)(current_time - g_Time) / g_TicksPerSecond;
     g_Time = current_time;
+
+    // Setup display size (every frame to accommodate for window resizing)
+    RECT rect = { 0, 0, 0, 0 };
+    ::GetClientRect(g_hWnd, &rect);
+    io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
     // Read keyboard modifiers inputs
     io.KeyCtrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -308,12 +308,36 @@ void ImGui_ImplWin32_WaitForEvent()
 
     BOOL window_is_hidden = !IsWindowVisible(g_hWnd) || IsIconic(g_hWnd);
     double waiting_time = window_is_hidden ? INFINITE : ImGui::GetEventWaitingTime();
-    if (waiting_time > 0.0)
-    {
-        DWORD waiting_time_ms = isinf(waiting_time) ? INFINITE : (DWORD)(1000.0 * waiting_time);
-        ::MsgWaitForMultipleObjectsEx(0, NULL, waiting_time_ms, QS_ALLINPUT, MWMO_INPUTAVAILABLE|MWMO_ALERTABLE);
+
+    if (!isinf(waiting_time)) {
+        INT64 current_time = 0;
+        ::QueryPerformanceCounter((LARGE_INTEGER*)&current_time);
+        // Calculate processing time, to make wait time relative to start of frame.
+        // This results in improved frame rates (setting 1/30 seconds max waiting time results in at least 30 frames per second).
+        double elapsedSinceNewFrame = current_time - g_Time;
+        waiting_time -= elapsedSinceNewFrame;
     }
+
+    if (waiting_time <= 0.0)
+        return;
+
+    DWORD waiting_time_ms = isinf(waiting_time) ? INFINITE : (DWORD)(1000.0 * waiting_time);
+    ::MsgWaitForMultipleObjectsEx(0, NULL, waiting_time_ms, QS_ALLINPUT, MWMO_INPUTAVAILABLE|MWMO_ALERTABLE);
 }
+
+bool ImGui_ImplWin32_Events() {
+    ImGui_ImplWin32_WaitForEvent();
+    MSG msg = { 0 };
+    bool done = false;
+    while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+    {
+        ::TranslateMessage(&msg);
+        ::DispatchMessage(&msg);
+        if (msg.message == WM_QUIT)
+            done = true;
+    }
+    return done;
+ }
 
 // Allow compilation with old Windows SDK. MinGW doesn't have default _WIN32_WINNT/WINVER versions.
 #ifndef WM_MOUSEHWHEEL
