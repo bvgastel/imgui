@@ -286,7 +286,7 @@ void ImGui_ImplGlfw_Events()
 		}
 
     bool window_is_hidden = !glfwGetWindowAttrib(g_Window, GLFW_VISIBLE) || glfwGetWindowAttrib(g_Window, GLFW_ICONIFIED);
-    double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
+    double waiting_time = window_is_hidden ? (double)INFINITY : ImGui::GetEventWaitingTime();
     if (isinf(waiting_time)) {
         glfwWaitEvents();
         return;
@@ -415,7 +415,7 @@ void ImGui_ImplGlfw_NewFrame()
     glfwGetFramebufferSize(g_Window, &display_w, &display_h);
     io.DisplaySize = ImVec2((float)w, (float)h);
     if (w > 0 && h > 0)
-        io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
+        io.DisplayFramebufferScale = ImVec2((float)display_w / (float)w, (float)display_h / (float)h);
 
     ImGui_ImplGlfw_UpdateMousePosAndButtons();
     ImGui_ImplGlfw_UpdateMouseCursor();

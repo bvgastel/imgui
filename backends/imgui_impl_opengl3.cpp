@@ -397,10 +397,10 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
                 clip_rect.z = (pcmd->ClipRect.z - clip_off.x) * clip_scale.x;
                 clip_rect.w = (pcmd->ClipRect.w - clip_off.y) * clip_scale.y;
 
-                if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f)
+                if (clip_rect.x < float(fb_width) && clip_rect.y < float(fb_height) && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f)
                 {
                     // Apply scissor/clipping rectangle
-                    glScissor((int)clip_rect.x, (int)(fb_height - clip_rect.w), (int)(clip_rect.z - clip_rect.x), (int)(clip_rect.w - clip_rect.y));
+                    glScissor((int)clip_rect.x, fb_height - int(clip_rect.w), int(clip_rect.z - clip_rect.x), (int)(clip_rect.w - clip_rect.y));
 
                     // Bind texture, Draw
                     glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
@@ -459,8 +459,8 @@ bool ImGui_ImplOpenGL3_CreateFontsTexture()
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
     // Upload texture to graphics system
-    GLint last_texture;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    GLuint last_texture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&last_texture);
     glGenTextures(1, &g_FontTexture);
     glBindTexture(GL_TEXTURE_2D, g_FontTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -529,12 +529,12 @@ static bool CheckProgram(GLuint handle, const char* desc)
 bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
 {
     // Backup GL state
-    GLint last_texture, last_array_buffer;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+    GLuint last_texture, last_array_buffer;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&last_texture);
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*)&last_array_buffer);
 #ifndef IMGUI_IMPL_OPENGL_ES2
-    GLint last_vertex_array;
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+    GLuint last_vertex_array;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*)&last_vertex_array);
 #endif
 
     // Parse GLSL version string
