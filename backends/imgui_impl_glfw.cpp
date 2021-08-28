@@ -87,6 +87,7 @@ struct ImGui_ImplGlfw_Data
     GLFWcursorenterfun      PrevUserCallbackCursorEnter;
     GLFWmousebuttonfun      PrevUserCallbackMousebutton;
     GLFWscrollfun           PrevUserCallbackScroll;
+    GLFWcursorposfun        PrevUserCallbackCursorPos;
     GLFWkeyfun              PrevUserCallbackKey;
     GLFWcharfun             PrevUserCallbackChar;
     GLFWmonitorfun          PrevUserCallbackMonitor;
@@ -140,6 +141,19 @@ void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yo
     io.FrameCountSinceLastInput = 0;
     io.MouseWheelH += (float)xoffset;
     io.MouseWheel += (float)yoffset;
+}
+
+void ImGui_ImplGlfw_CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    ImGui_ImplGlfw_Data* bd = ImGui_ImplGlfw_GetBackendData();
+    if (bd->PrevUserCallbackCursorPos != NULL && window == bd->Window)
+        bd->PrevUserCallbackCursorPos(window, xpos, ypos);
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.FrameCountSinceLastInput = 0;
+
+    // Here, we just take note of the event without actually processing the cursor position.
+    // This is done in ImGui_ImplGlfw_NewFrame() / ImGui_ImplGlfw_UpdateMousePosAndButtons().
 }
 
 void ImGui_ImplGlfw_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -281,6 +295,7 @@ static bool ImGui_ImplGlfw_Init(GLFWwindow* window, bool install_callbacks, Glfw
     bd->PrevUserCallbackWindowFocus = NULL;
     bd->PrevUserCallbackMousebutton = NULL;
     bd->PrevUserCallbackScroll = NULL;
+    bd->PrevUserCallbackCursorPos = NULL;
     bd->PrevUserCallbackKey = NULL;
     bd->PrevUserCallbackChar = NULL;
     bd->PrevUserCallbackMonitor = NULL;
@@ -291,6 +306,7 @@ static bool ImGui_ImplGlfw_Init(GLFWwindow* window, bool install_callbacks, Glfw
         bd->PrevUserCallbackCursorEnter = glfwSetCursorEnterCallback(window, ImGui_ImplGlfw_CursorEnterCallback);
         bd->PrevUserCallbackMousebutton = glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback);
         bd->PrevUserCallbackScroll = glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
+        bd->PrevUserCallbackCursorPos = glfwSetCursorPosCallback(window, ImGui_ImplGlfw_CursorPosCallback);
         bd->PrevUserCallbackKey = glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
         bd->PrevUserCallbackChar = glfwSetCharCallback(window, ImGui_ImplGlfw_CharCallback);
         bd->PrevUserCallbackMonitor = glfwSetMonitorCallback(ImGui_ImplGlfw_MonitorCallback);
@@ -326,6 +342,7 @@ void ImGui_ImplGlfw_Shutdown()
         glfwSetCursorEnterCallback(bd->Window, bd->PrevUserCallbackCursorEnter);
         glfwSetMouseButtonCallback(bd->Window, bd->PrevUserCallbackMousebutton);
         glfwSetScrollCallback(bd->Window, bd->PrevUserCallbackScroll);
+        glfwSetCursorPosCallback(bd->Window, bd->PrevUserCallbackCursorPos);
         glfwSetKeyCallback(bd->Window, bd->PrevUserCallbackKey);
         glfwSetCharCallback(bd->Window, bd->PrevUserCallbackChar);
         glfwSetMonitorCallback(bd->PrevUserCallbackMonitor);
