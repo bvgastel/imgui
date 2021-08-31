@@ -112,7 +112,8 @@ void ImGui_ImplSDL2_WaitForEvent()
     if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_EnablePowerSavingMode))
         return;
 
-    Uint32 window_flags = SDL_GetWindowFlags(g_Window);
+    ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
+    Uint32 window_flags = SDL_GetWindowFlags(bd->Window);
     bool window_is_hidden = window_flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED);
     double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
     if (waiting_time > 0.0)
